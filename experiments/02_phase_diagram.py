@@ -96,12 +96,43 @@ def main() -> None:
         "superposition", xy=(0.9, 3.0), xytext=(0.55, 3.2), fontsize=9, color="0.4"
     )
 
-    ax2.plot(1.0 / density, feat_per_dim, "o-", color="#c33", lw=2)
+    # Analytic prediction: a feature earns a (superposed) slot once its importance
+    # clears a threshold that shrinks with density. With geometric importance decay
+    # this makes the stored-feature count grow LINEARLY IN log(1/density). We test
+    # that predicted *form*; its slope carries O(1) constants we do not fix.
+    fpd_arr = np.array(feat_per_dim)
+    inv_density = 1.0 / density
+    x = np.log(inv_density)
+    ceiling = N_FEATURES / N_HIDDEN
+    rising = (fpd_arr > 1.05) & (fpd_arr < ceiling - 0.05)  # the superposition regime
+
+    ax2.plot(inv_density, fpd_arr, "o", color="#c33", ms=8, label="measured")
+    if rising.sum() >= 2:
+        slope, intercept = np.polyfit(x[rising], fpd_arr[rising], 1)
+        pred = slope * x[rising] + intercept
+        ss_res = float(np.sum((fpd_arr[rising] - pred) ** 2))
+        ss_tot = float(np.sum((fpd_arr[rising] - fpd_arr[rising].mean()) ** 2))
+        r2 = 1 - ss_res / ss_tot if ss_tot > 0 else float("nan")
+        xline = np.linspace(x[rising].min(), x[rising].max(), 50)
+        ax2.plot(
+            np.exp(xline), slope * xline + intercept, "--", color="#222", lw=2,
+            label=f"predicted form  ∝ log(1/density)\n(fit R² = {r2:.2f})",
+        )
+        slope_theory = 1.0 / (N_HIDDEN * np.log(1.0 / IMPORTANCE))
+        log(
+            f"right-panel: fitted slope={slope:.3f}/e-fold (R²={r2:.3f}); "
+            f"crude theory slope={slope_theory:.3f} — same order, O(1) constants unfixed"
+        )
     ax2.set_xscale("log")
+    ax2.axhline(ceiling, ls=":", color="#c33", lw=1, label="ceiling n/m = 4")
+    ax2.axhline(1.0, ls="--", color="0.6", lw=1)
     ax2.set_xlabel("1 / density   (how rare each feature is)")
     ax2.set_ylabel("features per dimension")
-    ax2.set_title("Superposition grows with sparsity\n(log axis: roughly linear scaling)")
-    ax2.axhline(1.0, ls="--", color="0.6", lw=1)
+    ax2.set_title(
+        "Superposition grows as log(1/density)\n"
+        "predicted scaling form; prefactor carries O(1) constants"
+    )
+    ax2.legend(fontsize=8, loc="upper left")
 
     fig.tight_layout()
     out = figure_path("02_phase_diagram.png")
