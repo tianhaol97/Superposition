@@ -16,7 +16,6 @@ A compact, self-contained reproduction of the paper's *core* results plus an exp
 - **Added, extending the paper's own framing** — an explicit packing/frustration *energy* whose minimum the trained network attains exactly (a Thomson-problem reading of the geometry), and an order-parameter presentation of the transition with a derived scaling form (Section 5, Appendix).
 - **Out of scope** — results that are in the paper but not attempted here: the linear-model contrast, computation-in-superposition, correlated/anti-correlated features, higher-dimensional polytopes, learning dynamics, and the connection to real trained networks.
 
-
 ---
 
 ## 1. Abstract
@@ -59,19 +58,25 @@ The original paper already thinks this way — it has a section on *phase change
 
 The network is a deliberately minimal **autoencoder** (a network trained to copy its input to its output through a narrow bottleneck). It compresses $n$ features into $m < n$ dimensions and tries to reconstruct them:
 
-$$h = W x \in \mathbb{R}^{m}, \qquad \hat{x} = \mathrm{ReLU}\!\left(W^{\top} h + b\right) = \mathrm{ReLU}\!\left(W^{\top} W x + b\right).$$
+```math
+h = W x \in \mathbb{R}^{m}, \qquad \hat{x} = \mathrm{ReLU}\!\left(W^{\top} h + b\right) = \mathrm{ReLU}\!\left(W^{\top} W x + b\right). \tag{1}
+```
 
 Here $W \in \mathbb{R}^{m \times n}$ is a single weight matrix, $b \in \mathbb{R}^{n}$ a bias, and $\mathrm{ReLU}(z) = \max(0, z)$ applied elementwise. **Column $i$ of $W$, written $W_i \in \mathbb{R}^{m}$, is the direction the network uses to store feature $i$** — its *representation vector*. The ReLU is what lets the network clip away the small interference from overlapping features.
 
 **The data (the sparse world).** Each example $x \in \mathbb{R}^{n}$ has independent features; feature $i$ is off with probability $S$ (the sparsity) and otherwise uniform on $[0,1)$:
 
-$$x_i = \begin{cases} 0 & \text{with probability } S, \\ u_i,\ \ u_i \sim \mathcal{U}[0,1) & \text{with probability } 1-S. \end{cases}$$
+```math
+x_i = \begin{cases} 0 & \text{with probability } S, \\ u_i,\ \ u_i \sim \mathcal{U}[0,1) & \text{with probability } 1-S. \end{cases} \tag{2}
+```
 
 We call $p \equiv 1 - S$ the **density** (the probability a feature is on). The model never sees a fixed dataset — it learns the *statistics* of this world.
 
 **The loss.** An importance-weighted mean squared reconstruction error, with optional per-feature importances $I_i$ (we use a geometric decay $I_i = r^{\,i-1}$, or $r=1$ for uniform):
 
-$$L = \mathbb{E}_{x}\left[\, \sum_{i=1}^{n} I_i \,\bigl(x_i - \hat{x}_i\bigr)^2 \right].$$
+```math
+L = \mathbb{E}_{x}\left[\, \sum_{i=1}^{n} I_i \,\bigl(x_i - \hat{x}_i\bigr)^2 \right]. \tag{3}
+```
 
 The full engine is ~200 lines in [`src/superposition/`](src/superposition).
 
@@ -113,13 +118,17 @@ Back to the n = 5, m = 2 model, sweeping sparsity finely.
 
 ![Feature geometry and packing](figures/03_feature_geometry.png)
 
-**(A) Quantised geometry.** To quantify "how many dimensions a feature occupies" we use the **feature dimensionality** of Elhage et al. (with $\hat{W}_i = W_i / \lVert W_i \rVert$):
+**(A) Quantised geometry.** To quantify "how many dimensions a feature occupies" we use the **feature dimensionality** of Elhage et al. (with $\hat{W}_i = W_i / \| W_i \|$):
 
-$$D_i = \frac{\lVert W_i \rVert^2}{\sum_{j=1}^{n} \bigl(\hat{W}_i \cdot W_j\bigr)^2}.$$
+```math
+D_i = \frac{\| W_i \|^2}{\sum_{j=1}^{n} \bigl(\hat{W}_i \cdot W_j\bigr)^2}. \tag{4}
+```
 
 The numerator measures how strongly feature $i$ is represented; the denominator measures how much it shares its directions with all features (including itself). It satisfies $0 \le D_i$ and $\sum_i D_i \le m$ — the network has only $m$ dimensions to hand out. For $k$ unit vectors arranged as a **regular polygon** in 2D ($m=2$), every pairwise angle is a multiple of $2\pi/k$ and the denominator collapses to a clean value (derived in the Appendix), giving
 
-$$D_i = \frac{2}{k}.$$
+```math
+D_i = \frac{2}{k}. \tag{5}
+```
 
 So the dimensionality does not drift smoothly — it **locks onto a discrete ladder** $2/k$, each value a specific shape:
 
@@ -134,7 +143,9 @@ The flat plateaus separated by jumps are the signature of distinct **geometric p
 
 **(B) A solved packing problem.** We define a **frustration energy** — the total squared overlap between *unit* feature directions, the network's analogue of electrostatic repulsion:
 
-$$E(W) = \sum_{i<j} \bigl(\hat{W}_i \cdot \hat{W}_j\bigr)^2.$$
+```math
+E(W) = \sum_{i<j} \bigl(\hat{W}_i \cdot \hat{W}_j\bigr)^2. \tag{6}
+```
 
 For $k$ unit vectors equally spaced on the circle, this has the closed form $E_k = \tfrac{1}{4}k(k-2)$ for $k \ge 3$ (derived in the Appendix). For the pentagon, $E_5 = \tfrac{1}{4}\cdot 5 \cdot 3 = 3.75$. Comparing the trained network to this ideal:
 
@@ -177,15 +188,21 @@ tests/         fast checks of the engine and metrics
 
 For $k$ unit vectors equally spaced on the circle, write $\hat{W}_a = (\cos\theta_a, \sin\theta_a)$ with $\theta_a = 2\pi a / k$, so that $\hat{W}_a \cdot \hat{W}_b = \cos\!\big(\tfrac{2\pi (a-b)}{k}\big)$. The one fact we need is that for $k \ge 3$ the cross term vanishes and
 
-$$\sum_{d=0}^{k-1} \cos^2\!\Big(\tfrac{2\pi d}{k}\Big) = \frac{k}{2}.$$
+```math
+\sum_{d=0}^{k-1} \cos^2\!\Big(\tfrac{2\pi d}{k}\Big) = \frac{k}{2}. \tag{7}
+```
 
-**Dimensionality** $D_i = 2/k$ (used in Section 5A). With unit vectors $\lVert W_i \rVert = 1$, the denominator of $D_i$ is exactly the sum above, so
+**Dimensionality** $D_i = 2/k$ (used in Section 5A). With unit vectors $\| W_i \| = 1$, the denominator of $D_i$ is exactly the sum above, so
 
-$$\sum_{j} \bigl(\hat{W}_i \cdot W_j\bigr)^2 = \sum_{d=0}^{k-1} \cos^2\!\Big(\tfrac{2\pi d}{k}\Big) = \frac{k}{2} \quad\Longrightarrow\quad D_i = \frac{1}{k/2} = \frac{2}{k}.$$
+```math
+\sum_{j} \bigl(\hat{W}_i \cdot W_j\bigr)^2 = \sum_{d=0}^{k-1} \cos^2\!\Big(\tfrac{2\pi d}{k}\Big) = \frac{k}{2} \quad\Longrightarrow\quad D_i = \frac{1}{k/2} = \frac{2}{k}. \tag{8}
+```
 
 **Frustration energy** $E_k = \tfrac14 k(k-2)$ (used in Section 5B). Summing over unordered pairs, with $k$ ordered pairs for each nonzero difference $d$,
 
-$$E_k = \sum_{a<b} \cos^2\!\Big(\tfrac{2\pi (a-b)}{k}\Big) = \frac{k}{2}\sum_{d=1}^{k-1}\cos^2\!\Big(\tfrac{2\pi d}{k}\Big) = \frac{k}{2}\Big(\frac{k}{2} - 1\Big) = \frac{k(k-2)}{4}.$$
+```math
+E_k = \sum_{a<b} \cos^2\!\Big(\tfrac{2\pi (a-b)}{k}\Big) = \frac{k}{2}\sum_{d=1}^{k-1}\cos^2\!\Big(\tfrac{2\pi d}{k}\Big) = \frac{k}{2}\Big(\frac{k}{2} - 1\Big) = \frac{k(k-2)}{4}. \tag{9}
+```
 
 For the pentagon $E_5 = \tfrac14 \cdot 5 \cdot 3 = 3.75$ (an antipodal pair, $k=2$, gives $E = 1$ separately).
 
@@ -195,15 +212,21 @@ One feature can always be stored perfectly in a single dimension; the question i
 
 **Dedicate** ($W = (1, 0)$, $b = 0$): then $\hat{x}_1 = \mathrm{ReLU}(x_1) = x_1$ and $\hat{x}_2 = 0$, so only feature 2's error survives:
 
-$$L_{\text{ded}} = I\,\mathbb{E}[x_2^2] = I\,p \int_0^1 u^2\,du = \frac{I p}{3}.$$
+```math
+L_{\text{ded}} = I\,\mathbb{E}[x_2^2] = I\,p \int_0^1 u^2\,du = \frac{I p}{3}. \tag{10}
+```
 
 **Superpose antipodally** ($W = (1, -1)$, $b = 0$): then $h = x_1 - x_2$, giving $\hat{x}_1 = \mathrm{ReLU}(x_1 - x_2)$ and $\hat{x}_2 = \mathrm{ReLU}(x_2 - x_1)$. If only one feature is on, reconstruction is *exact* (the ReLU clips the rest); error appears **only when both fire** (probability $p^2$), and then each feature's error equals $\min(x_1, x_2)$. With $\mathbb{E}[\min(u,v)^2] = 2\int_0^1\!\int_0^v u^2\,du\,dv = \tfrac16$ over the unit square,
 
-$$L_{\text{sup}} = I\,p^2 \cdot 2\,\mathbb{E}[\min(u,v)^2] = I\,p^2 \cdot 2 \cdot \tfrac16 = \frac{I p^2}{3}.$$
+```math
+L_{\text{sup}} = I\,p^2 \cdot 2\,\mathbb{E}[\min(u,v)^2] = I\,p^2 \cdot 2 \cdot \tfrac16 = \frac{I p^2}{3}. \tag{11}
+```
 
 **Boundary.** Setting $L_{\text{sup}} = L_{\text{ded}}$ gives $\tfrac{I p^2}{3} = \tfrac{I p}{3}$, i.e. $p = 1$. For every $p < 1$ (any sparsity at all) we have $L_{\text{sup}} < L_{\text{ded}}$: **superposition wins, and the no-superposition phase survives only at the dense point $p = 1$.** The mechanism is the competing scaling
 
-$$\underbrace{\text{benefit} \;\propto\; p}_{\text{feature is on}} \qquad \text{vs.} \qquad \underbrace{\text{interference cost} \;\propto\; p^2}_{\text{two features collide}},$$
+```math
+\underbrace{\text{benefit} \;\propto\; p}_{\text{feature is on}} \qquad \text{vs.} \qquad \underbrace{\text{interference cost} \;\propto\; p^2}_{\text{two features collide}}, \tag{12}
+```
 
 so the cost-to-benefit ratio $\propto p \to 0$ as the world gets sparse.
 
@@ -211,7 +234,9 @@ so the cost-to-benefit ratio $\propto p \to 0$ as the world gets sparse.
 
 In the full model ($n > m$), adding feature $k$ in superposition inflicts interference on the already-stored, more important features. The marginal cost scales as $c\,p^2 \sum_{j<k} I_j$ against a marginal benefit $\tfrac{p}{3} I_k$, where $c = O(1)$ is an undetermined collision constant. Storing feature $k$ is worthwhile while $\tfrac{p}{3} I_k \gtrsim c\,p^2 \sum_{j<k} I_j$. With geometric importance $I_k = r^{\,k-1}$ and $\sum_{j<k} I_j \to \tfrac{1}{1-r}$,
 
-$$r^{\,k-1} \;\gtrsim\; \frac{3 c\,p}{1-r} \quad\Longrightarrow\quad k \;\lesssim\; k_0 + \frac{\ln(1/p)}{\ln(1/r)}.$$
+```math
+r^{\,k-1} \;\gtrsim\; \frac{3 c\,p}{1-r} \quad\Longrightarrow\quad k \;\lesssim\; k_0 + \frac{\ln(1/p)}{\ln(1/r)}. \tag{13}
+```
 
 So **features-per-dimension $k/m$ grows linearly in $\ln(1/\text{density})$**, with slope $\sim \tfrac{1}{m \ln(1/r)}$ up to the constant $c$. Exp 2 confirms this *form* ($R^2 = 0.99$); the unknown $c$ is exactly why the measured slope ($0.79$ per e-fold) and this crude estimate ($1.95$) differ by an $O(1)$ factor.
 
