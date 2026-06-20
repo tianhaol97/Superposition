@@ -56,7 +56,7 @@ The original paper already thinks this way — it has a section on *phase change
 
 ## 4. The model
 
-The network is a deliberately minimal **autoencoder** (a network trained to copy its input to its output through a narrow bottleneck). It compresses $n$ features into $m < n$ dimensions and tries to reconstruct them:
+The network is a deliberately minimal **autoencoder** (a network trained to copy its input to its output through a narrow bottleneck). It compresses $n$ features into $m  \lt  n$ dimensions and tries to reconstruct them:
 
 ```math
 h = W x \in \mathbb{R}^{m}, \qquad \hat{x} = \mathrm{ReLU}\!\left(W^{\top} h + b\right) = \mathrm{ReLU}\!\left(W^{\top} W x + b\right). \quad (1)
@@ -144,7 +144,7 @@ The flat plateaus separated by jumps are the signature of distinct **geometric p
 **(B) A solved packing problem.** We define a **frustration energy** — the total squared overlap between *unit* feature directions, the network's analogue of electrostatic repulsion:
 
 ```math
-E(W) = \sum_{i<j} \bigl(\hat{W}_i \cdot \hat{W}_j\bigr)^2. \quad (6)
+E(W) = \sum_{i \lt j} \bigl(\hat{W}_i \cdot \hat{W}_j\bigr)^2. \quad (6)
 ```
 
 For $k$ unit vectors equally spaced on the circle, this has the closed form $E_k = \tfrac{1}{4}k(k-2)$ for $k \ge 3$ (derived in the Appendix). For the pentagon, $E_5 = \tfrac{1}{4}\cdot 5 \cdot 3 = 3.75$. Comparing the trained network to this ideal:
@@ -201,7 +201,7 @@ For $k$ unit vectors equally spaced on the circle, write $\hat{W}_a = (\cos\thet
 **Frustration energy** $E_k = \tfrac14 k(k-2)$ (used in Section 5B). Summing over unordered pairs, with $k$ ordered pairs for each nonzero difference $d$,
 
 ```math
-E_k = \sum_{a<b} \cos^2\!\Big(\tfrac{2\pi (a-b)}{k}\Big) = \frac{k}{2}\sum_{d=1}^{k-1}\cos^2\!\Big(\tfrac{2\pi d}{k}\Big) = \frac{k}{2}\Big(\frac{k}{2} - 1\Big) = \frac{k(k-2)}{4}. \quad (9)
+E_k = \sum_{a \lt b} \cos^2\!\Big(\tfrac{2\pi (a-b)}{k}\Big) = \frac{k}{2}\sum_{d=1}^{k-1}\cos^2\!\Big(\tfrac{2\pi d}{k}\Big) = \frac{k}{2}\Big(\frac{k}{2} - 1\Big) = \frac{k(k-2)}{4}. \quad (9)
 ```
 
 For the pentagon $E_5 = \tfrac14 \cdot 5 \cdot 3 = 3.75$ (an antipodal pair, $k=2$, gives $E = 1$ separately).
@@ -222,7 +222,7 @@ L_{\text{ded}} = I\,\mathbb{E}[x_2^2] = I\,p \int_0^1 u^2\,du = \frac{I p}{3}. \
 L_{\text{sup}} = I\,p^2 \cdot 2\,\mathbb{E}[\min(u,v)^2] = I\,p^2 \cdot 2 \cdot \tfrac16 = \frac{I p^2}{3}. \quad (11)
 ```
 
-**Boundary.** Setting $L_{\text{sup}} = L_{\text{ded}}$ gives $\tfrac{I p^2}{3} = \tfrac{I p}{3}$, i.e. $p = 1$. For every $p < 1$ (any sparsity at all) we have $L_{\text{sup}} < L_{\text{ded}}$: **superposition wins, and the no-superposition phase survives only at the dense point $p = 1$.** The mechanism is the competing scaling
+**Boundary.** Setting $L_{\text{sup}} = L_{\text{ded}}$ gives $\tfrac{I p^2}{3} = \tfrac{I p}{3}$, i.e. $p = 1$. For every $p  \lt  1$ (any sparsity at all) we have $L_{\text{sup}}  \lt  L_{\text{ded}}$: **superposition wins, and the no-superposition phase survives only at the dense point $p = 1$.** The mechanism is the competing scaling
 
 ```math
 \underbrace{\text{benefit} \;\propto\; p}_{\text{feature is on}} \qquad \text{vs.} \qquad \underbrace{\text{interference cost} \;\propto\; p^2}_{\text{two features collide}}, \quad (12)
@@ -232,7 +232,7 @@ so the cost-to-benefit ratio $\propto p \to 0$ as the world gets sparse.
 
 ### C. From the boundary to the log-linear count (Exp 2)
 
-In the full model ($n > m$), adding feature $k$ in superposition inflicts interference on the already-stored, more important features. The marginal cost scales as $c\,p^2 \sum_{j<k} I_j$ against a marginal benefit $\tfrac{p}{3} I_k$, where $c = O(1)$ is an undetermined collision constant. Storing feature $k$ is worthwhile while $\tfrac{p}{3} I_k \gtrsim c\,p^2 \sum_{j<k} I_j$. With geometric importance $I_k = r^{\,k-1}$ and $\sum_{j<k} I_j \to \tfrac{1}{1-r}$,
+In the full model ($n  \gt  m$), adding feature $k$ in superposition inflicts interference on the already-stored, more important features. The marginal cost scales as $c\,p^2 \sum_{j \lt k} I_j$ against a marginal benefit $\tfrac{p}{3} I_k$, where $c = O(1)$ is an undetermined collision constant. Storing feature $k$ is worthwhile while $\tfrac{p}{3} I_k \gtrsim c\,p^2 \sum_{j \lt k} I_j$. With geometric importance $I_k = r^{\,k-1}$ and $\sum_{j \lt k} I_j \to \tfrac{1}{1-r}$,
 
 ```math
 r^{\,k-1} \;\gtrsim\; \frac{3 c\,p}{1-r} \quad\Longrightarrow\quad k \;\lesssim\; k_0 + \frac{\ln(1/p)}{\ln(1/r)}. \quad (13)
