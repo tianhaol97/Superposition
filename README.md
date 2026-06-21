@@ -72,7 +72,7 @@ x_i = \begin{cases} 0 & \text{with probability } S, \\ u_i,\ \ u_i \sim \mathcal
 
 We call $p \equiv 1 - S$ the **density** (the probability a feature is on). The model never sees a fixed dataset — it learns the *statistics* of this world.
 
-**The loss.** An importance-weighted mean squared reconstruction error, with optional per-feature importances $I_i$ (we use a geometric decay $I_i = r^{i-1}$, or $r=1$ for uniform):
+**The loss.** An importance-weighted mean squared reconstruction error, with optional per-feature importances $I_i$ (we use a geometric decay $I_i = r^{i-1}$, or $r=1$ for uniform), averaged over random inputs $x$:
 
 ```math
 L = \mathbb{E}_{x}\left[\, \sum_{i=1}^{n} I_i \,\bigl(x_i - \hat{x}_i\bigr)^2 \right]. \quad (3)
@@ -88,7 +88,13 @@ The full engine is ~200 lines in [`src/superposition/`](src/superposition).
 
 `python experiments/01_superposition_emergence.py`
 
-We use the tiniest interesting model: **n = 5 features, m = 2 dimensions**, so we can *draw* the storage space on a flat page. Each arrow is one feature's representation vector; the bar below counts how many dimensions each feature effectively occupies.
+We use the tiniest interesting model: **n = 5 features, m = 2 dimensions**, importance decay $r = 0.9$, so we can *draw* the storage space on a flat page. Each arrow is one feature's representation vector. The bars below show each feature's **dimensionality** $D_i$ (Elhage et al.) — how many of the $m$ dimensions feature $i$ effectively occupies, with $\hat{W}_i = W_i / \| W_i \|$:
+
+```math
+D_i = \frac{\| W_i \|^2}{\sum_{j=1}^{n} \bigl(\hat{W}_i \cdot W_j\bigr)^2}. \quad (4)
+```
+
+It runs from $D_i = 0$ (feature not represented) to $D_i = 1$ (feature owns a full dimension), and satisfies $\sum_i D_i \le m$ — there are only $m$ dimensions to share.
 
 ![Emergence of superposition](figures/01_superposition_emergence.png)
 
@@ -102,7 +108,7 @@ This is the canonical "Toy Models of Superposition" result, reproduced from scra
 
 `python experiments/02_phase_diagram.py`
 
-Now a bigger model (**n = 40 features, m = 10 dimensions**). We pick an **order parameter** — a single number summarising the macroscopic state — and sweep the sparsity knob. Our order parameter is **features-per-dimension**: how many features the network actually stores, divided by the number of dimensions. A value of 1 means "no superposition" (each stored feature owns a dimension); a value above 1 means superposition.
+Now a bigger model (**n = 40 features, m = 10 dimensions**, importance decay $r = 0.95$). We pick an **order parameter** — a single number summarising the macroscopic state — and sweep the sparsity knob. Our order parameter is **features-per-dimension**: how many features the network actually stores, divided by the number of dimensions. A value of 1 means "no superposition" (each stored feature owns a dimension); a value above 1 means superposition.
 
 ![Phase diagram](figures/02_phase_diagram.png)
 
@@ -114,17 +120,11 @@ The network sits in a **no-superposition phase** (features-per-dimension ≈ 1) 
 
 `python experiments/03_feature_geometry.py`
 
-Back to the n = 5, m = 2 model, sweeping sparsity finely.
+Back to the n = 5, m = 2 model ($r = 0.9$), sweeping sparsity finely.
 
 ![Feature geometry and packing](figures/03_feature_geometry.png)
 
-**(A) Quantised geometry.** To quantify "how many dimensions a feature occupies" we use the **feature dimensionality** of Elhage et al. (with $\hat{W}_i = W_i / \| W_i \|$):
-
-```math
-D_i = \frac{\| W_i \|^2}{\sum_{j=1}^{n} \bigl(\hat{W}_i \cdot W_j\bigr)^2}. \quad (4)
-```
-
-The numerator measures how strongly feature $i$ is represented; the denominator measures how much it shares its directions with all features (including itself). It satisfies $0 \le D_i$ and $\sum_i D_i \le m$ — the network has only $m$ dimensions to hand out. For $k$ unit vectors arranged as a **regular polygon** in 2D ($m=2$), every pairwise angle is a multiple of $2\pi/k$ and the denominator collapses to a clean value (derived in the Appendix), giving
+**(A) Quantised geometry.** Recall the feature dimensionality $D_i$ from Eq (4). For $k$ unit vectors arranged as a **regular polygon** in 2D ($m=2$), every pairwise angle is a multiple of $2\pi/k$, so the denominator of $D_i$ collapses to a clean value (derived in the Appendix), giving
 
 ```math
 D_i = \frac{2}{k}. \quad (5)

@@ -19,11 +19,16 @@ def _to_numpy(W) -> np.ndarray:
     return np.asarray(W)
 
 
-def plot_feature_vectors_2d(ax: Axes, W, title: str = "") -> None:
+def plot_feature_vectors_2d(ax: Axes, W, title: str = "", lim: float | None = None) -> None:
     """Draw each feature's 2D representation vector as an arrow from the origin.
 
     Only valid when the bottleneck dimension ``m == 2``. The colour encodes the
     feature index, so you can see which features ended up sharing directions.
+
+    Args:
+        lim: axis half-range. If ``None``, auto-scales to this panel's vectors.
+            Pass a fixed value so several panels share one scale, which keeps the
+            dashed unit-circle reference the same apparent size across them.
     """
     Wn = _to_numpy(W)
     if Wn.shape[0] != 2:
@@ -31,7 +36,8 @@ def plot_feature_vectors_2d(ax: Axes, W, title: str = "") -> None:
 
     n = Wn.shape[1]
     colors = _index_colors(n)
-    lim = 1.2 * max(1e-6, np.abs(Wn).max())
+    if lim is None:
+        lim = 1.2 * max(1e-6, np.abs(Wn).max())
     for i in range(n):
         ax.plot([0, Wn[0, i]], [0, Wn[1, i]], "-", color=colors[i], lw=2)
         ax.plot(Wn[0, i], Wn[1, i], "o", color=colors[i], ms=5)

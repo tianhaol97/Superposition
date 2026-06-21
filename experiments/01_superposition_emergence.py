@@ -30,9 +30,13 @@ SPARSITIES = [0.0, 0.5, 0.7, 0.9, 0.97]
 
 
 def main() -> None:
-    fig, axes = plt.subplots(2, len(SPARSITIES), figsize=(3 * len(SPARSITIES), 6))
-
-    for col, sparsity in enumerate(SPARSITIES):
+    # First pass: train every panel and collect results, so we can choose ONE
+    # axis scale shared by all panels. With a shared scale the dashed unit circle
+    # renders identically everywhere and arrow lengths are directly comparable
+    # across sparsities (per-panel auto-scaling would make the same length look
+    # different from panel to panel).
+    panels = []
+    for sparsity in SPARSITIES:
         cfg = TrainConfig(
             n_features=5,
             n_hidden=2,
@@ -49,9 +53,15 @@ def main() -> None:
             f"sparsity={sparsity:.2f}  represented={k}  loss={loss:.4f}  "
             f"D_i={[round(d, 2) for d in dims.tolist()]}"
         )
+        panels.append((sparsity, W, dims, k))
 
+    # One shared half-range for all 2D panels (keep the unit circle well inside).
+    shared_lim = max(1.3, 1.15 * max(float(W.abs().max()) for _, W, _, _ in panels))
+
+    fig, axes = plt.subplots(2, len(SPARSITIES), figsize=(3 * len(SPARSITIES), 6))
+    for col, (sparsity, W, dims, k) in enumerate(panels):
         ax_top = axes[0, col]
-        plot_feature_vectors_2d(ax_top, W)
+        plot_feature_vectors_2d(ax_top, W, lim=shared_lim)
         ax_top.set_title(
             f"sparsity = {sparsity:.2f}\n{k} of 5 features stored", fontsize=10
         )
