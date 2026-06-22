@@ -1,58 +1,36 @@
 # A Toy Model of Superposition — a statistical-physics view
 
-**How can a neural network remember more things (features) than it has room (neurons, dimensions) for? By superposition - the same way packed spheres do.**
+*How can a neural network store more features than it has dimensions? By superposition — the same trick that lets packed spheres and frustrated spins settle into ordered compromises. This repo builds the smallest network that does it, reproduces the core results from scratch, and analyzes them with the tools of statistical mechanics: order parameters, phase transitions, and energy minimization. Runs on a laptop CPU in minutes.*
 
-This repository builds the smallest neural network that exhibits *superposition*, reproduces the key results from scratch, and then analyses them with the tools of statistical physics: order parameters, phase transitions, and energy minimisation. Everything runs on a laptop CPU in a few minutes.
+## 1. Why superposition matters
 
-### Based on Anthropic's "Toy Models of Superposition"
+Modern language models almost certainly rely on superposition heavily — they represent far more concepts than they have neurons — which is a central obstacle for **interpretability** (the effort to understand what a network has actually learned): a single neuron ends up entangled in many unrelated concepts. A toy system small enough to solve completely is the right place to build intuition before facing real networks.
 
-Everything here is built on **Elhage et al. (2022), *Toy Models of Superposition*** (Transformer Circuits Thread, <https://transformer-circuits.pub/2022/toy_model/index.html>). The model, the feature-dimensionality metric, the quantized polytope geometry, and the phase-change picture all originate in that work. This repository is an independent reimplementation of its core, re-examined through a statistical-mechanics lens.
+And superposition is, underneath, a problem statistical physics already owns. If you must place *n* feature directions in only *m < n* dimensions, they cannot all be perpendicular, so they interfere — and the network arranges them to minimize the total interference. That is a **frustration** problem, with century-old cousins:
 
-### Scope
+- the **Thomson problem** — charges repelling on a sphere settle into regular shapes;
+- **sphere packing** and **spin frustration** — many parts, each avoiding the others, settling into an ordered compromise.
 
-A compact, self-contained reproduction of the paper's *core* results plus an explicit statistical-physics analysis — deliberately narrow, not a full replication.
+With sparsity as a control knob, the natural question is the one at the heart of statistical mechanics: **does the system change phase as we turn the knob?** It does — sharply — and the ordered phases are regular polygons. This repo makes that framing explicit and quantitative: one order parameter swept across one control parameter, plus a direct measurement that the learned geometry minimizes a packing energy.
 
-- **Reproduced from scratch** — the ReLU output model; the emergence of superposition with sparsity ($n=5$, $m=2 \to$ pentagon); the feature-dimensionality metric and its quantized values; the $n=2,m=1$ phase-change analysis; and the paper's reading of the geometry as a **generalized Thomson problem** (the paper makes this connection explicitly — see §3).
-- **Added** — an independent, tested reimplementation; a learning-dynamics view showing the energy of the learned features descend to the ideal packing value as training proceeds; and a features-per-dimension order parameter that tracks the superposition phase transition. These illustrate and extend the paper's framing; they do not originate it.
-- **Out of scope** — results that are in the paper but not attempted here: the linear-model contrast, computation-in-superposition, correlated/anti-correlated features, higher-dimensional polytopes, the *energy-level jumps* during training (we show only the overall energy descent), and the connection to real trained networks.
+## 2. What superposition is
 
----
+A network stores information in a fixed number of internal "slots" (axes of a coordinate system). Naively it can hold at most one feature per slot. **Superposition** is the trick of storing *many more* features than slots by laying them down as *overlapping* directions that share the slots. This works only because features are **sparse** — most are silent at any given moment, so the overlaps rarely collide. Below, the network discovers this on its own, and settles into exactly the shapes an energy-minimization argument predicts.
 
-## 1. Abstract
+**A few terms, defined once:**
 
-A neural network stores information inside a fixed number of internal "slots" (think of them as the axes of a coordinate system). Common sense says it can store at most one piece of information per slot. **Superposition** is the surprising trick where a network stores *many more* pieces of information than it has slots, by laying them down as *overlapping* directions that share the slots. This works only because the information is **sparse** — most pieces are "silent" at any given moment, so the overlaps rarely cause confusion. Below we watch a network discover this trick on its own, and we show that the shapes it settles into are exactly the shapes a physicist would predict from an energy-minimization argument.
-
-### A few terms, defined once
-
-- **Feature**: one independent piece of information the network might want to represent (e.g. "the image contains a wheel"). We use *n* features.
+- **Feature**: one independent piece of information the network might represent (e.g. "the image contains a wheel"). We use *n* features.
 - **Dimension / slot**: one axis of the network's internal storage space. We use *m* of them, with **m < n** — fewer slots than features. That scarcity is the whole point.
-- **Sparsity**: the fraction of the time a feature is *off* (exactly zero). Sparsity 0 = every feature is always on ("dense" world); sparsity near 1 = features almost never appear together ("sparse" world). This is our master control knob.
+- **Sparsity**: the fraction of the time a feature is *off* (exactly zero). Sparsity 0 = every feature always on ("dense" world); sparsity near 1 = features almost never appear together ("sparse" world). This is our master control knob.
 - **Superposition**: storing more features than dimensions by using overlapping, non-perpendicular directions.
 
----
+## 3. Scope and relation to the original work
 
-## 2. Motivation — why superposition is worth understanding
+Everything here builds on **Elhage et al. (2022), *Toy Models of Superposition*** (Transformer Circuits Thread, https://transformer-circuits.pub/2022/toy_model/index.html). The model, the feature-dimensionality metric, the quantized polytope geometry, and the phase-change picture all originate in that work. This repository is an independent reimplementation of its core, re-examined through a statistical-mechanics lens — deliberately narrow, not a full replication.
 
-Modern language models almost certainly rely on superposition heavily: they represent far more concepts than they have neurons. That makes it a central obstacle for **interpretability** (the effort to understand what a network has actually learned), because a single neuron ends up entangled in many unrelated concepts. A toy system small enough to solve completely is the natural place to build intuition before tackling it in real networks.
-
----
-
-## 3. Why this is really a physics problem
-
-If you must place *n* feature directions in only *m* dimensions, they cannot all be mutually perpendicular — there isn't enough room. So they interfere. Each pair of features that points in similar directions pays a penalty (they get confused for one another). The network wants to arrange the directions to make the *total* penalty as small as possible.
-
-That is a **frustration problem**, and physicists have studied its cousins for over a century:
-
-- It is the **Thomson problem**: place electrons on a sphere so that their mutual repulsion is minimized. The solutions are beautiful regular shapes.
-- It is **sphere packing** and **spin frustration**: many parts, each wanting to avoid the others, settling into an ordered compromise.
-
-And because we have a control knob (sparsity), we can ask the question at the heart of statistical mechanics: **does the system change phase as we turn the knob?** It does — sharply — and the ordered phases are regular polygons.
-
-This is home territory for a statistical physicist — frustration, packing, and phase transitions are everyday tools there — and the rest of this repository applies them to superposition directly.
-
-The original paper already does this — it has a section on *phase changes*, decomposes the model into competing "feature benefit" and "interference" forces, and states explicitly that the model "can be understood as solving a generalized version of the **Thomson problem**" (packing points on a sphere to minimize an interference energy). This repo doesn't originate that framing; it **reproduces it from scratch and verifies it quantitatively** — sweeping a single order parameter across a control parameter (Section 5) and confirming the learned geometry hits the ideal packing energy to numerical precision.
-
----
+- **Reproduced from scratch** — the ReLU output model; the emergence of superposition with sparsity (*n* = 5, *m* = 2 → pentagon); the feature-dimensionality metric and its quantized values; a sparsity-driven phase diagram.
+- **Added, extending the paper's own framing** — an explicit packing/frustration *energy* whose minimum the trained network attains exactly (a Thomson-problem reading of the geometry), and an order-parameter presentation of the transition with a derived scaling form (Section 5, Appendix).
+- **Out of scope** — results in the paper not attempted here: the linear-model contrast, computation-in-superposition, correlated/anti-correlated features, higher-dimensional polytopes, learning dynamics, and the connection to real trained networks.
 
 ## 4. The model
 
