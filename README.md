@@ -13,8 +13,8 @@ Everything here is built on **Elhage et al. (2022), *Toy Models of Superposition
 A compact, self-contained reproduction of the paper's *core* results plus an explicit statistical-physics analysis — deliberately narrow, not a full replication.
 
 - **Reproduced from scratch** — the ReLU output model; the emergence of superposition with sparsity ($n=5$, $m=2 \to$ pentagon); the feature-dimensionality metric and its quantized values; the $n=2,m=1$ phase-change analysis; and the paper's reading of the geometry as a **generalized Thomson problem** (the paper makes this connection explicitly — see §3).
-- **Added** — an independent, tested reimplementation; a numerical check that the learned geometry attains the ideal packing energy exactly; and a features-per-dimension order parameter that tracks the superposition phase transition. These illustrate and extend the paper's framing; they do not originate it.
-- **Out of scope** — results that are in the paper but not attempted here: the linear-model contrast, computation-in-superposition, correlated/anti-correlated features, higher-dimensional polytopes, learning dynamics, and the connection to real trained networks.
+- **Added** — an independent, tested reimplementation; a learning-dynamics view showing the energy of the learned features descend to the ideal packing value as training proceeds; and a features-per-dimension order parameter that tracks the superposition phase transition. These illustrate and extend the paper's framing; they do not originate it.
+- **Out of scope** — results that are in the paper but not attempted here: the linear-model contrast, computation-in-superposition, correlated/anti-correlated features, higher-dimensional polytopes, the *energy-level jumps* during training (we show only the overall energy descent), and the connection to real trained networks.
 
 ---
 
@@ -135,15 +135,7 @@ In panel A, **each dot is one feature's $D_i$** (from the best of 6 seeds at tha
 E(W) = \sum_{i \lt j} \bigl(\hat{W}_i \cdot \hat{W}_j\bigr)^2. \quad (6)
 ```
 
-For $k$ unit vectors equally spaced on a circle this has the closed form $E_k = \tfrac{1}{4}k(k-2)$ (Appendix), so the regular pentagon sits at $E_5 = 3.75$. Panel B tracks $E(W)$ of the *learned* directions through training: as the reconstruction loss falls (right axis), the energy is driven down and **settles exactly onto $E_5 = 3.75$**. The network is never told to pack points on a sphere — it discovers the minimum-energy arrangement as a byproduct of reducing reconstruction error. That is the link between superposition and the Thomson problem, shown dynamically (and it mirrors the paper's "energy-level" view of learning).
-
-**A note on importance.** That clean value is the *uniform-importance* case. In general the penalised interference is importance-weighted — feature $i$'s error carries weight $I_i$, so a collision with $j$ costs $I_i(\hat{W}_i\cdot\hat{W}_j)^2$ — giving
-
-```math
-E_I(W) = \sum_{i \lt j} (I_i + I_j)\,(\hat{W}_i \cdot \hat{W}_j)^2 . \quad (7)
-```
-
-with $E_I = 2E$ when all $I_i = 1$ (the exact Thomson regime). Non-uniform importance sets *which* features survive — dropping one feature's importance enough turns the five-feature pentagon into a four-feature square — and gently **deforms** the polytope; but at high sparsity the survivors stay near-regular, which is why the unweighted $E_5 = 3.75$ is still attained at the $r = 0.9$ used here.
+For $k$ unit vectors equally spaced on a circle this has the closed form $E_k = \tfrac{1}{4}k(k-2)$ (Appendix), so the regular pentagon sits at $E_5 = 3.75$. Panel B runs a single high-sparsity training at **uniform importance** — the regime where the loss's interference term is *exactly* this (generalized-Thomson) energy — and tracks $E(W)$ of the learned directions: as the reconstruction loss falls (right axis), the energy it is effectively minimizing is driven down and **settles onto the exact minimum $E_5 = 3.75$**. The network is never told to pack points on a sphere; it discovers the minimum-energy arrangement as a byproduct of reducing reconstruction error — the Thomson link, shown dynamically (and mirroring the paper's "energy-level" view of learning). How *non-uniform* importance reshapes this — which features get stored at all — is the subject of Experiment 4.
 
 ### Experiment 3 — a sparsity phase diagram
 
@@ -152,7 +144,7 @@ with $E_I = 2E$ when all $I_i = 1$ (the exact Thomson regime). Non-uniform impor
 Now a bigger model (**n = 40 features, m = 10 dimensions**, importance decay $r = 0.95$). We pick an **order parameter** — a single number summarising the macroscopic state — and sweep the sparsity knob. Our order parameter is **features-per-dimension** $\phi$: the number of features actually stored (those with a non-negligible representation vector, $\| W_i \| \gt \tau$ with $\tau = 0.5$) divided by the number of dimensions $m$:
 
 ```math
-\phi = \frac{1}{m} \sum_{i=1}^{n} \mathbf{1}\!\left[\, \| W_i \| \gt \tau \,\right]. \quad (8)
+\phi = \frac{1}{m} \sum_{i=1}^{n} \mathbf{1}\!\left[\, \| W_i \| \gt \tau \,\right]. \quad (7)
 ```
 
 $\phi = 1$ means "no superposition" (each stored feature owns a dimension); $\phi \gt 1$ means superposition. The threshold $\tau$ is unambiguous because the learned norms are **bimodal** — stored features sit near $\| W_i \| \approx 1$, dropped ones near $0$ — so any $\tau$ in the gap (≈ 0.3–0.7) gives the same count; we use $\tau = 0.5$. (We also track **bottleneck usage** $\tfrac{1}{m}\sum_i D_i$, the fraction of representational capacity in use, plotted alongside it.)
@@ -178,19 +170,19 @@ The smallest model that still has a phase change is $n=2$ features in $m=1$ dime
 **Costs.** A *dropped* feature is best reconstructed by a constant — the model sets the bias to the feature's mean $\mathbb{E}[x]=p/2$ — so its cost is its **variance** $\mathrm{Var}(x)=\tfrac{p}{3}-\tfrac{p^2}{4}$ (not the raw second moment $\mathbb{E}[x^2]=p/3$; getting this right is what makes the boundary come out correctly). The *antipodal* pair reconstructs each feature exactly unless **both** fire (probability $p^2$); when they do, each feature's error is $\min(x_1,x_2)$ — the smaller of the two active values, each an independent draw from $\mathcal{U}[0,1)$ — and $\mathbb{E}[\min(x_1,x_2)^2]=\tfrac16$. Hence
 
 ```math
-L_{\text{not}} = I\!\left(\tfrac{p}{3}-\tfrac{p^2}{4}\right), \qquad L_{\text{ded}} = \tfrac{p}{3}-\tfrac{p^2}{4}, \qquad L_{\text{anti}} = \frac{(1+I)\,p^2}{6}. \quad (9)
+L_{\text{not}} = I\!\left(\tfrac{p}{3}-\tfrac{p^2}{4}\right), \qquad L_{\text{ded}} = \tfrac{p}{3}-\tfrac{p^2}{4}, \qquad L_{\text{anti}} = \frac{(1+I)\,p^2}{6}. \quad (8)
 ```
 
 **Mechanism.** The interference cost is *exactly* quadratic in density (it is paid only on a collision, probability $p^2$), whereas the drop cost is the variance $\tfrac{p}{3}-\tfrac{p^2}{4}$, which is linear in $p$ **only at high sparsity**. So to leading order as $p\to0$:
 
 ```math
-\underbrace{\text{drop cost} \;\sim\; p}_{\text{linear (small } p)} \quad\text{vs.}\quad \underbrace{\text{interference} \;=\; \tfrac{(1+I)\,p^2}{6}}_{\text{exactly quadratic}}. \quad (10)
+\underbrace{\text{drop cost} \;\sim\; p}_{\text{linear (small } p)} \quad\text{vs.}\quad \underbrace{\text{interference} \;=\; \tfrac{(1+I)\,p^2}{6}}_{\text{exactly quadratic}}. \quad (9)
 ```
 
 So superposition wins once the world is sparse enough. The model takes the minimum of the three; equating $L_{\text{anti}}$ with the cheaper drop gives the superposition boundary
 
 ```math
-\text{superpose} \iff p \;\lt\; p^\star, \qquad p^\star = \frac{4I}{2+5I}\ (I\le1), \quad \frac{4}{5+2I}\ (I\ge1). \quad (11)
+\text{superpose} \iff p \;\lt\; p^\star, \qquad p^\star = \frac{4I}{2+5I}\ (I\le1), \quad \frac{4}{5+2I}\ (I\ge1). \quad (10)
 ```
 
 These three phases tile the $(I,p)$ plane and meet at $(I,p)=(1,\tfrac47)$: **not represented** when the extra feature is unimportant and dense ($I\lt1$, $p\gt p^\star$); **dedicated** when it is the *more* important one and dense ($I\gt1$, $p\gt p^\star$); **superposition** whenever sparse ($p\lt p^\star$). The transition is **first order** (the optimal configuration switches discontinuously). The symmetric case is *not* "superposition for all sparsity": even at $I=1$ there is a genuine dense phase. Training the actual $n=2,m=1$ model confirms this three-phase map:
@@ -238,22 +230,22 @@ tests/         fast checks of the engine and metrics
 
 ## 8. Appendix — the regular-polygon identities
 
-The two closed forms used in Experiment 2. For $k$ unit vectors equally spaced on the circle, write $\hat{W}_a = (\cos\theta_a, \sin\theta_a)$ with $\theta_a = 2\pi a / k$, so that $\hat{W}_a \cdot \hat{W}_b = \cos\!\big(\tfrac{2\pi (a-b)}{k}\big)$. The one fact we need is that for $k \ge 3$ the cross term vanishes and
+The two closed forms used in Experiment 2. For $k$ unit vectors equally spaced on the circle, write $\hat{W}_a = (\cos\theta_a, \sin\theta_a)$ with $\theta_a = 2\pi a / k$, so that $\hat{W}_a \cdot \hat{W}_b = \cos\big(\tfrac{2\pi (a-b)}{k}\big)$. The one fact we need is that for $k \ge 3$ the cross term vanishes and
 
 ```math
-\sum_{d=0}^{k-1} \cos^2\!\Big(\tfrac{2\pi d}{k}\Big) = \frac{k}{2}. \quad (12)
+\sum_{d=0}^{k-1} \cos^2 \Big(\tfrac{2\pi d}{k}\Big) = \frac{k}{2}. \quad (11)
 ```
 
 **Dimensionality** $D_i = 2/k$ (Eq 5). With unit vectors $\| W_i \| = 1$, the denominator of $D_i$ is exactly the sum above, so
 
 ```math
-\sum_{j} \bigl(\hat{W}_i \cdot W_j\bigr)^2 = \sum_{d=0}^{k-1} \cos^2\!\Big(\tfrac{2\pi d}{k}\Big) = \frac{k}{2} \quad\Longrightarrow\quad D_i = \frac{1}{k/2} = \frac{2}{k}. \quad (13)
+\sum_{j} \bigl(\hat{W}_i \cdot W_j\bigr)^2 = \sum_{d=0}^{k-1} \cos^2\!\Big(\tfrac{2\pi d}{k}\Big) = \frac{k}{2} \quad\Longrightarrow\quad D_i = \frac{1}{k/2} = \frac{2}{k}. \quad (12)
 ```
 
 **Frustration energy** $E_k = \tfrac14 k(k-2)$ (Eq 6). Summing over unordered pairs, with $k$ ordered pairs for each nonzero difference $d$,
 
 ```math
-E_k = \sum_{a \lt b} \cos^2\!\Big(\tfrac{2\pi (a-b)}{k}\Big) = \frac{k}{2}\sum_{d=1}^{k-1}\cos^2\!\Big(\tfrac{2\pi d}{k}\Big) = \frac{k}{2}\Big(\frac{k}{2} - 1\Big) = \frac{k(k-2)}{4}. \quad (14)
+E_k = \sum_{a \lt b} \cos^2\!\Big(\tfrac{2\pi (a-b)}{k}\Big) = \frac{k}{2}\sum_{d=1}^{k-1}\cos^2\!\Big(\tfrac{2\pi d}{k}\Big) = \frac{k}{2}\Big(\frac{k}{2} - 1\Big) = \frac{k(k-2)}{4}. \quad (13)
 ```
 
 For the pentagon $E_5 = \tfrac14 \cdot 5 \cdot 3 = 3.75$ (an antipodal pair, $k=2$, gives $E = 1$ separately).

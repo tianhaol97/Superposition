@@ -82,8 +82,12 @@ def main() -> None:
         log(f"sparsity={sparsity:.2f}  D_i={[round(d, 2) for d in dims.tolist()]}  loss={loss:.4f}")
 
     # ---- (B) learning dynamics at high sparsity ----
+    # Uniform importance (r=1): the regime where the loss's interference term is
+    # exactly a (generalized) Thomson energy, E_I = 2E. So the unweighted E we
+    # plot IS (half) the quantity being minimised, and its ideal value is the
+    # exact closed form E_5 = 3.75.
     dyn_cfg = TrainConfig(n_features=5, n_hidden=2, sparsity=0.97,
-                          importance=IMPORTANCE, steps=6000, lr=2e-3)
+                          importance=1.0, steps=6000, lr=2e-3)
     final_loss, steps, energies, loss_hist = best_energy_trace(dyn_cfg, n_seeds=6)
     E_ideal = regular_polygon_energy(5)
     log(f"dynamics: final E={energies[-1]:.4f}  ideal pentagon E={E_ideal:.4f}  loss={final_loss:.4f}")
