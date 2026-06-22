@@ -1,77 +1,96 @@
 """Experiment 2 — quantized geometry and the packing-problem connection.
 
-Two ideas, one figure.
+Two panels.
 
-(A) Geometric phases. As we sweep sparsity for the small model (n = 5, m = 2),
-    the per-feature dimensionality D_i does not vary smoothly: it locks onto a
-    discrete ladder of preferred values,
+(A) Geometric phases. Sweeping sparsity for the small model (n = 5, m = 2), the
+    per-feature dimensionality D_i locks onto a discrete ladder of values
+    (1, 2/3, 1/2, 2/5, ...), each a regular polygon — flat plateaus separated by
+    jumps, the signature of distinct geometric phases.
 
-        1            a feature alone on its own axis
-        2/3 ≈ 0.67   three features at 120°  (a triangle)
-        1/2 = 0.50   two antipodal features  (a "digon" / a pair)
-        2/5 = 0.40   five features at 72°     (a pentagon)
-
-    Each value corresponds to a specific regular arrangement of feature vectors.
-    The flat plateaus separated by jumps are the signature of distinct
-    geometric *phases*, just like the discrete plateaus in a physical system.
-
-(B) A packing problem. At high sparsity the five features form a regular
-    pentagon. We show that this arrangement minimises a "frustration energy"
-    E = Σ_{i<j} (Ŵ_i·Ŵ_j)² — the same flavour of objective as the Thomson
-    problem (point charges repelling on a sphere). The network, just by
-    minimising reconstruction error, discovers the optimal packing.
+(B) Learning dynamics: the network *discovers* the packing. During a single
+    high-sparsity run we track the frustration / generalized-Thomson energy
+    E = Σ_{i<j} (Ŵ_i·Ŵ_j)² of the learned feature *directions*. As the
+    reconstruction loss falls, E is driven down to the ideal regular-pentagon
+    value E_5 = 3.75 — the network solves the packing problem as a byproduct of
+    minimising reconstruction error. This is the dynamical view of the paper's
+    "energy-level" picture.
 """
 
 from __future__ import annotations
+
+from dataclasses import replace
 
 import numpy as np
 import matplotlib.pyplot as plt
 
 from _common import figure_path, log, train_best_of
-from superposition import TrainConfig, importance_weights
-from superposition.metrics import (
-    feature_dimensionality,
-    feature_norms,
-    frustration_energy,
-)
+from superposition import TrainConfig, train
+from superposition.metrics import feature_dimensionality, frustration_energy
 
 IMPORTANCE = 0.9
-from superposition.viz import plot_feature_vectors_2d
-
 SPARSITIES = np.round(np.linspace(0.0, 0.97, 12), 3)
 STICKY = {"1": 1.0, "2/3 (triangle)": 2 / 3, "1/2 (pair)": 1 / 2, "2/5 (pentagon)": 2 / 5}
 
 
 def regular_polygon_energy(k: int) -> float:
-    """Frustration energy of k unit vectors equally spaced around the circle."""
+    """Frustration energy of k unit vectors equally spaced around the circle = k(k-2)/4."""
     angles = 2 * np.pi * np.arange(k) / k
-    v = np.stack([np.cos(angles), np.sin(angles)])  # (2, k)
+    v = np.stack([np.cos(angles), np.sin(angles)])
     g = v.T @ v
     iu = np.triu_indices(k, k=1)
     return float((g[iu] ** 2).sum())
 
 
+def best_energy_trace(base_cfg, n_seeds=6, record_every=40):
+    """Train ``n_seeds`` runs, recording the frustration energy of the learned
+    directions every ``record_every`` steps, and return the lowest-final-loss
+    run as ``(final_loss, steps, energies, loss_history)``.
+
+    Energy is taken over *all* feature directions (threshold = -1) so the
+    trajectory reflects how the directions organise; the metric is scale-free,
+    so it is well defined even while the weights are still small.
+    """
+    best = None
+    for s in range(n_seeds):
+        cfg = replace(base_cfg, seed=s, history=[])
+        steps: list[int] = []
+        energies: list[float] = []
+
+        def rec(step, model, _s=steps, _e=energies, _cfg=cfg):
+            if step % record_every == 0 or step == _cfg.steps - 1:
+                _s.append(step)
+                _e.append(frustration_energy(model.W.detach(), threshold=-1.0))
+
+        train(cfg, on_step=rec)
+        if best is None or cfg.history[-1] < best[0]:
+            best = (cfg.history[-1], steps, energies, list(cfg.history))
+    return best
+
+
 def main() -> None:
-    # ---- (A) sweep: collect every feature's dimensionality at each sparsity ----
+    # ---- (A) sweep: per-feature dimensionality vs sparsity ----
     xs, ys = [], []
-    pentagon_W = None
     for sparsity in SPARSITIES:
-        cfg = TrainConfig(
-            n_features=5, n_hidden=2, sparsity=float(sparsity),
-            importance=IMPORTANCE, steps=6000, lr=2e-3,
-        )
+        cfg = TrainConfig(n_features=5, n_hidden=2, sparsity=float(sparsity),
+                          importance=IMPORTANCE, steps=6000, lr=2e-3)
         model, loss = train_best_of(cfg, n_seeds=6)
-        W = model.W.detach()
-        dims = feature_dimensionality(W)
+        dims = feature_dimensionality(model.W.detach())
         for d in dims.tolist():
             if d > 0.02:  # ignore unrepresented features
                 xs.append(float(sparsity))
                 ys.append(d)
-        pentagon_W = W  # keep the last (highest-sparsity) one
-        log(f"sparsity={sparsity:.2f}  D_i={[round(d,2) for d in dims.tolist()]}  loss={loss:.4f}")
+        log(f"sparsity={sparsity:.2f}  D_i={[round(d, 2) for d in dims.tolist()]}  loss={loss:.4f}")
+
+    # ---- (B) learning dynamics at high sparsity ----
+    dyn_cfg = TrainConfig(n_features=5, n_hidden=2, sparsity=0.97,
+                          importance=IMPORTANCE, steps=6000, lr=2e-3)
+    final_loss, steps, energies, loss_hist = best_energy_trace(dyn_cfg, n_seeds=6)
+    E_ideal = regular_polygon_energy(5)
+    log(f"dynamics: final E={energies[-1]:.4f}  ideal pentagon E={E_ideal:.4f}  loss={final_loss:.4f}")
 
     fig, (axA, axB) = plt.subplots(1, 2, figsize=(13, 5.5))
 
+    # panel A
     axA.scatter(xs, ys, s=40, color="#36c", alpha=0.7, edgecolor="white", zorder=3)
     for label, val in STICKY.items():
         axA.axhline(val, ls="--", color="0.6", lw=1)
@@ -82,25 +101,30 @@ def main() -> None:
     axA.set_ylabel(r"feature dimensionality $D_i$")
     axA.set_title("(A) Geometry is quantized:\n$D_i$ locks onto values set by regular polygons")
 
-    # ---- (B) the pentagon as a solved packing problem ----
-    plot_feature_vectors_2d(axB, pentagon_W)
-    k = int((feature_norms(pentagon_W) > 0.5).sum())
-    E_learned = frustration_energy(pentagon_W)
-    E_ideal = regular_polygon_energy(k)
-    # generalized (importance-weighted) energy: E_I = sum (I_i + I_j)(Ŵ_i·Ŵ_j)^2.
-    # The clean unweighted match below holds because at high sparsity the geometry
-    # is essentially importance-independent (the uniform-importance Thomson regime).
-    I_vec = importance_weights(5, IMPORTANCE, "cpu")
-    E_weighted = frustration_energy(pentagon_W, importance=I_vec)
-    axB.set_title(
-        f"(B) Optimal packing at high sparsity\n"
-        f"{k} features form a regular {k}-gon\n"
-        f"frustration energy: learned={E_learned:.3f}, ideal {k}-gon={E_ideal:.3f}"
-    )
-    log(
-        f"pentagon: k={k}  E_learned={E_learned:.4f}  E_ideal={E_ideal:.4f}  "
-        f"E_weighted(r={IMPORTANCE})={E_weighted:.4f}"
-    )
+    # panel B: energy of learned features (left) and reconstruction loss (right)
+    h_E, = axB.plot(steps, energies, color="#c33", lw=2,
+                    label=r"energy of learned features $E(W)$")
+    h_ideal = axB.axhline(E_ideal, ls="--", color="#333", lw=1.5,
+                          label=rf"ideal pentagon  $E_5 = {E_ideal:.2f}$")
+    axB.set_xlabel("training step")
+    axB.set_ylabel(r"frustration / Thomson energy  $E(W)$", color="#c33")
+    axB.tick_params(axis="y", colors="#c33")
+    axB.set_ylim(E_ideal - 0.4, max(energies) + 0.3)
+
+    axL = axB.twinx()
+    # the per-batch loss is noisy; show a moving average for legibility
+    w = 50
+    loss_smooth = np.convolve(np.array(loss_hist), np.ones(w) / w, mode="valid")
+    h_L, = axL.plot(np.arange(len(loss_smooth)) + w // 2, loss_smooth, color="0.5", lw=1.5,
+                    label="reconstruction loss (smoothed)")
+    axL.set_yscale("log")
+    axL.set_ylabel("reconstruction loss  (log scale)", color="0.4")
+    axL.tick_params(axis="y", colors="0.4")
+
+    axB.set_title("(B) Training discovers the packing:\n"
+                  "energy of learned features falls to the ideal regular-pentagon value")
+    axB.legend([h_E, h_ideal, h_L], [h.get_label() for h in (h_E, h_ideal, h_L)],
+               fontsize=8, loc="upper right")
 
     fig.tight_layout()
     out = figure_path("02_feature_geometry.png")

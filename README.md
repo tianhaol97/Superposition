@@ -129,33 +129,21 @@ So the dimensionality does not drift smoothly — it **locks onto a discrete lad
 
 In panel A, **each dot is one feature's $D_i$** (from the best of 6 seeds at that sparsity, not separate seeds); overlapping dots mean those features share the same dimensionality, as they do when the geometry is a regular polygon. The dots settle onto a discrete set of levels, and those flat plateaus separated by jumps are the signature of distinct **geometric phases** — like discrete energy levels in a physical system. (The $2/3$ line is drawn for reference; this particular model jumps past it.)
 
-**(B) A solved packing problem.** The paper identifies the model's *interference* term as a **generalized Thomson energy** — points packed on a sphere minimizing a repulsion. We make that concrete and measure it: the total squared overlap between *unit* feature directions,
+**(B) Training discovers the packing.** The paper identifies the model's *interference* term as a **generalized Thomson energy** — points packed on a sphere minimizing a repulsion. We make it concrete: the total squared overlap between *unit* feature directions,
 
 ```math
 E(W) = \sum_{i \lt j} \bigl(\hat{W}_i \cdot \hat{W}_j\bigr)^2. \quad (6)
 ```
 
-For $k$ unit vectors equally spaced on the circle, this has the closed form $E_k = \tfrac{1}{4}k(k-2)$ for $k \ge 3$ (derived in the Appendix). For the pentagon, $E_5 = \tfrac{1}{4}\cdot 5 \cdot 3 = 3.75$. Comparing the trained network to this ideal:
+For $k$ unit vectors equally spaced on a circle this has the closed form $E_k = \tfrac{1}{4}k(k-2)$ (Appendix), so the regular pentagon sits at $E_5 = 3.75$. Panel B tracks $E(W)$ of the *learned* directions through training: as the reconstruction loss falls (right axis), the energy is driven down and **settles exactly onto $E_5 = 3.75$**. The network is never told to pack points on a sphere — it discovers the minimum-energy arrangement as a byproduct of reducing reconstruction error. That is the link between superposition and the Thomson problem, shown dynamically (and it mirrors the paper's "energy-level" view of learning).
 
-> **learned energy = 3.750, ideal regular-pentagon energy = 3.750** — they match to numerical precision.
-
-The network, simply by minimizing reconstruction error, has independently found the minimum-energy packing — the same flavour of answer the Thomson problem gives for points repelling on a sphere.
-
-**How feature importance enters.** That clean match is the *uniform-importance* case. In general the interference the loss penalises is importance-weighted: feature $i$'s reconstruction error carries weight $I_i$, so a collision with feature $j$ contributes $I_i(\hat{W}_i\cdot\hat{W}_j)^2$, and summed over each pair the energy is
+**A note on importance.** That clean value is the *uniform-importance* case. In general the penalised interference is importance-weighted — feature $i$'s error carries weight $I_i$, so a collision with $j$ costs $I_i(\hat{W}_i\cdot\hat{W}_j)^2$ — giving
 
 ```math
 E_I(W) = \sum_{i \lt j} (I_i + I_j)\,(\hat{W}_i \cdot \hat{W}_j)^2 . \quad (7)
 ```
 
-Setting all $I_i = 1$ recovers $E_I = 2E$ — exactly the regime in which the paper states the model solves a *generalized Thomson problem*. So importance does two things: it sets **which** features are stored (the benefit of storing feature $k$ is $\propto I_k$ — this is what drives the Experiment 3 count), and with non-uniform importance the minimum-energy polytopes **deform**:
-
-| sparsity | $r$ | features stored | $E$ | $E_I$ |
-|---|---|---|---|---|
-| 0.97 | 1.0 (uniform) | 5 — regular **pentagon** | 3.750 | 7.500 |
-| 0.97 | 0.9 | 5 — pentagon | 3.750 | 6.143 |
-| 0.97 | 0.5 | 4 — regular **square** | 2.000 | 1.875 |
-
-At $r=0.5$ the least-important feature ($I_5 \approx 0.06$) is dropped — pentagon → square. But at high sparsity the survivors stay near-regular (each $D_i$ within ${\sim}0.005$ of $2/k$), which is why the unweighted match above holds even though this run uses $r = 0.9$.
+with $E_I = 2E$ when all $I_i = 1$ (the exact Thomson regime). Non-uniform importance sets *which* features survive — dropping one feature's importance enough turns the five-feature pentagon into a four-feature square — and gently **deforms** the polytope; but at high sparsity the survivors stay near-regular, which is why the unweighted $E_5 = 3.75$ is still attained at the $r = 0.9$ used here.
 
 ### Experiment 3 — a sparsity phase diagram
 

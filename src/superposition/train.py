@@ -48,11 +48,13 @@ def importance_weights(n_features: int, base: float, device) -> torch.Tensor:
     return base ** powers
 
 
-def train(config: TrainConfig) -> ToyModel:
+def train(config: TrainConfig, on_step=None) -> ToyModel:
     """Train a :class:`ToyModel` according to ``config`` and return it.
 
     The per-step loss is appended to ``config.history`` so callers can inspect
-    convergence.
+    convergence. If ``on_step`` is given, it is called as ``on_step(step, model)``
+    after every optimiser step — useful for recording a metric trajectory (e.g.
+    the frustration energy of the learned features) during training.
     """
     device = torch.device(config.device)
     gen = torch.Generator(device=device).manual_seed(config.seed)
@@ -78,6 +80,8 @@ def train(config: TrainConfig) -> ToyModel:
         optimizer.step()
 
         config.history.append(float(loss))
+        if on_step is not None:
+            on_step(step, model)
         if config.log_every and (step % config.log_every == 0 or step == config.steps - 1):
             print(f"step {step:6d}  loss {float(loss):.6f}")
 
