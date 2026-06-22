@@ -13,6 +13,8 @@ And superposition is, underneath, a problem statistical physics already owns. If
 
 With sparsity as a control knob, the natural question is the one at the heart of statistical mechanics: **does the system change phase as we turn the knob?** It does — sharply — and the ordered phases are regular polygons. This repo makes that framing explicit and quantitative: one order parameter swept across one control parameter, plus a direct measurement that the learned geometry minimizes a packing energy.
 
+---
+
 ## 2. What superposition is
 
 A network stores information in a fixed number of internal "slots" (axes of a coordinate system). Naively it can hold at most one feature per slot. **Superposition** is the trick of storing *many more* features than slots by laying them down as *overlapping* directions that share the slots. This works only because features are **sparse** — most are silent at any given moment, so the overlaps rarely collide. Below, the network discovers this on its own, and settles into exactly the shapes an energy-minimization argument predicts.
@@ -24,6 +26,8 @@ A network stores information in a fixed number of internal "slots" (axes of a co
 - **Sparsity**: the fraction of the time a feature is *off* (exactly zero). Sparsity 0 = every feature always on ("dense" world); sparsity near 1 = features almost never appear together ("sparse" world). This is our master control knob.
 - **Superposition**: storing more features than dimensions by using overlapping, non-perpendicular directions.
 
+---
+
 ## 3. Scope and relation to the original work
 
 Everything here builds on **Elhage et al. (2022), *Toy Models of Superposition*** (Transformer Circuits Thread, https://transformer-circuits.pub/2022/toy_model/index.html). The model, the feature-dimensionality metric, the quantized polytope geometry, and the phase-change picture all originate in that work. This repository is an independent reimplementation of its core, re-examined through a statistical-mechanics lens — deliberately narrow, not a full replication.
@@ -31,6 +35,8 @@ Everything here builds on **Elhage et al. (2022), *Toy Models of Superposition**
 - **Reproduced from scratch** — the ReLU output model; the emergence of superposition with sparsity (*n* = 5, *m* = 2 → pentagon); the feature-dimensionality metric and its quantized values; a sparsity-driven phase diagram.
 - **Added, extending the paper's own framing** — an explicit packing/frustration *energy* whose minimum the trained network attains exactly (a Thomson-problem reading of the geometry), and an order-parameter presentation of the transition with a derived scaling form (Section 5, Appendix).
 - **Out of scope** — results in the paper not attempted here: the linear-model contrast, computation-in-superposition, correlated/anti-correlated features, higher-dimensional polytopes, learning dynamics, and the connection to real trained networks.
+
+---
 
 ## 4. The model
 
