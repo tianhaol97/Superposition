@@ -274,7 +274,7 @@ Together these put the true superposition loss roughly $2.5\times$ below the $b=
 
 ### C. From the boundary to the log-linear count (Exp 2)
 
-In the full model ($n  \gt  m$), adding feature $k$ in superposition inflicts interference on the already-stored, more important features. The marginal cost scales as $c\,p^2 \sum_{j \lt k} I_j$ (interference, $c = O(1)$), against a marginal benefit equal to the variance feature $k$ would otherwise lose, $\bigl(\tfrac{p}{3}-\tfrac{p^2}{4}\bigr) I_k \approx \tfrac{p}{3} I_k$ at high sparsity (Eq 12). Storing feature $k$ is worthwhile while $\tfrac{p}{3} I_k \gtrsim c\,p^2 \sum_{j \lt k} I_j$. With geometric importance $I_k = r^{\,k-1}$ the partial sum is *exactly* $\sum_{j \lt k} I_j = \tfrac{1-r^{\,k-1}}{1-r}$, so the condition rearranges to $r^{\,k-1} \gtrsim \tfrac{3cp}{(1-r)+3cp}$. As $p\to0$ the denominator $\to 1-r$, leaving
+In the full model ($n  \gt  m$), adding feature $k$ in superposition inflicts interference on the already-stored, more important features. The marginal cost scales as $c p^2 \sum_{j \lt k} I_j$ (interference, $c = O(1)$), against a marginal benefit equal to the variance feature $k$ would otherwise lose, $\bigl(\tfrac{p}{3}-\tfrac{p^2}{4}\bigr) I_k \approx \tfrac{p}{3} I_k$ at high sparsity (Eq 12). Storing feature $k$ is worthwhile while $\tfrac{p}{3} I_k \gtrsim c p^2 \sum_{j \lt k} I_j$. With geometric importance $I_k = r^{k-1}$ the partial sum is *exactly* $\sum_{j \lt k} I_j = \tfrac{1-r^{k-1}}{1-r}$, so the condition rearranges to $r^{k-1} \gtrsim \tfrac{3cp}{(1-r)+3cp}$. As $p\to0$ the denominator $\to 1-r$, leaving
 
 ```math
 r^{\,k-1} \;\gtrsim\; \frac{3cp}{1-r} \quad\Longrightarrow\quad k \;\lesssim\; k_0 + \frac{\ln(1/p)}{\ln(1/r)}. \quad (15)
