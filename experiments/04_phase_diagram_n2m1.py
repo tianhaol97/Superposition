@@ -76,10 +76,7 @@ def main() -> None:
     ax.set_ylim(DENSITIES[0], DENSITIES[-1])
     ax.set_xlabel("relative importance of the extra feature,  $I$")
     ax.set_ylabel("density  $p = 1 - $ sparsity")
-    ax.set_title(
-        "n = 2, m = 1 phase diagram\n"
-        "cells = trained model; curve = analytic boundary (Appendix B)"
-    )
+    ax.set_title("n = 2, m = 1 phase diagram")
     legend = [
         Patch(facecolor="#bcd9ff", label="superposition (antipodal)"),
         Patch(facecolor="#ffd6a8", label="not represented (extra dropped)"),

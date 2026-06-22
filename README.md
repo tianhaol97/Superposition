@@ -112,7 +112,7 @@ Staying with the $n = 5, m = 2$ model ($r = 0.9$), we sweep sparsity finely and 
 
 ![Feature geometry and packing](figures/02_feature_geometry.png)
 
-**(A) Quantised geometry.** Recall the feature dimensionality $D_i$ from Eq (4). For $k$ unit vectors arranged as a **regular polygon** in 2D ($m=2$), every pairwise angle is a multiple of $2\pi/k$, so the denominator of $D_i$ collapses to a clean value (derived in the Appendix), giving
+**(A) Quantized geometry.** Recall the feature dimensionality $D_i$ from Eq (4). For $k$ unit vectors arranged as a **regular polygon** in 2D ($m=2$), every pairwise angle is a multiple of $2\pi/k$, so the denominator of $D_i$ collapses to a clean value (derived in the Appendix), giving
 
 ```math
 D_i = \frac{2}{k}. \quad (5)
@@ -127,7 +127,7 @@ So the dimensionality does not drift smoothly — it **locks onto a discrete lad
 | $1/2$ | 4 | two features back-to-back (a pair) |
 | $2/5$ | 5 | five features at 72° (a pentagon) |
 
-The flat plateaus separated by jumps are the signature of distinct **geometric phases** — like discrete energy levels in a physical system. (The $2/3$ line is drawn for reference; this particular model jumps past it.)
+In panel A, **each dot is one feature's $D_i$** (from the best of 6 seeds at that sparsity, not separate seeds); overlapping dots mean those features share the same dimensionality, as they do when the geometry is a regular polygon. The dots settle onto a discrete set of levels, and those flat plateaus separated by jumps are the signature of distinct **geometric phases** — like discrete energy levels in a physical system. (The $2/3$ line is drawn for reference; this particular model jumps past it.)
 
 **(B) A solved packing problem.** The paper identifies the model's *interference* term as a **generalized Thomson energy** — points packed on a sphere minimizing a repulsion. We make that concrete and measure it: the total squared overlap between *unit* feature directions,
 

@@ -1,4 +1,4 @@
-"""Experiment 3 — quantised geometry and the packing-problem connection.
+"""Experiment 2 — quantized geometry and the packing-problem connection.
 
 Two ideas, one figure.
 
@@ -80,7 +80,7 @@ def main() -> None:
     axA.set_ylim(0, 1.08)
     axA.set_xlabel("sparsity")
     axA.set_ylabel(r"feature dimensionality $D_i$")
-    axA.set_title("(A) Geometry is quantised:\n$D_i$ locks onto values set by regular polygons")
+    axA.set_title("(A) Geometry is quantized:\n$D_i$ locks onto values set by regular polygons")
 
     # ---- (B) the pentagon as a solved packing problem ----
     plot_feature_vectors_2d(axB, pentagon_W)
