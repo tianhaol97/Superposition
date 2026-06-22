@@ -188,6 +188,7 @@ pip install -e .            # installs torch, numpy, matplotlib
 python experiments/01_superposition_emergence.py
 python experiments/02_phase_diagram.py
 python experiments/03_feature_geometry.py
+python experiments/04_phase_diagram_n2m1.py
 pytest                      # fast sanity tests
 ```
 
@@ -202,7 +203,7 @@ src/superposition/
   train.py     training loop + config
   metrics.py   order parameters: dimensionality, frustration energy
   viz.py       plotting helpers
-experiments/   three scripts, each producing one figure above
+experiments/   four scripts, each producing one figure above
 tests/         fast checks of the engine and metrics
 ```
 
@@ -238,25 +239,31 @@ This reproduces the paper's closed-form analysis of the $n=2,m=1$ case (their "t
 - **dedicated**, $W=(0,1)$ — give the dimension to the extra, drop feature 1: $\hat{x}_2=x_2$, $\hat{x}_1=0$;
 - **antipodal**, $W=(1,-1)$ — both in superposition: $\hat{x}_i=\mathrm{ReLU}(\pm h)$, exact *unless both fire*.
 
-Using $\mathbb{E}[x^2]=p\!\int_0^1 u^2\,du = p/3$ for a dropped feature, and $\mathbb{E}[\min(u,v)^2]=\tfrac16$ for the both-active collision (probability $p^2$; each feature's error is $\min(x_1,x_2)$, weighted by *its* importance), the losses are
+**Costs.** A *dropped* feature is best reconstructed by a constant — the model sets the bias to the feature's mean $\mathbb{E}[x]=p/2$ — so its cost is its **variance** $\mathrm{Var}(x)=\tfrac{p}{3}-\tfrac{p^2}{4}$ (not the raw second moment $\mathbb{E}[x^2]=p/3$; getting this right is what makes the boundary come out correctly). The *antipodal* pair reconstructs each feature exactly unless **both** fire (probability $p^2$), where each errs by $\min(x_1,x_2)$ with $\mathbb{E}[\min(u,v)^2]=\tfrac16$. Hence
 
 ```math
-L_{\text{not}} = \frac{I\,p}{3}, \qquad L_{\text{ded}} = \frac{p}{3}, \qquad L_{\text{anti}} = \frac{(1+I)\,p^2}{6}. \quad (12)
+L_{\text{not}} = I\!\left(\tfrac{p}{3}-\tfrac{p^2}{4}\right), \qquad L_{\text{ded}} = \tfrac{p}{3}-\tfrac{p^2}{4}, \qquad L_{\text{anti}} = \frac{(1+I)\,p^2}{6}. \quad (12)
 ```
 
-**The model takes the minimum.** The two "drop" strategies cost $\propto p$ (a dropped feature's variance), while interference costs only $\propto p^2$ (paid only when two features collide):
+**Mechanism.** A dropped feature costs $\propto p$ (its variance), while interference costs only $\propto p^2$ — it is paid only when two features collide:
 
 ```math
-\underbrace{\text{benefit of representing} \;\propto\; p}_{\text{a feature is on}} \quad\text{vs.}\quad \underbrace{\text{interference cost} \;\propto\; p^2}_{\text{two features collide}}. \quad (13)
+\underbrace{\text{cost of dropping} \;\propto\; p}_{\text{a feature is on}} \quad\text{vs.}\quad \underbrace{\text{interference cost} \;\propto\; p^2}_{\text{two features collide}}. \quad (13)
 ```
 
-So superposition always wins once the world is sparse enough. Comparing $L_{\text{anti}}$ against the cheaper drop-strategy gives the superposition boundary
+So superposition wins once the world is sparse enough. The model takes the minimum of the three; equating $L_{\text{anti}}$ with the cheaper drop gives the superposition boundary
 
 ```math
-\text{superpose} \iff p \;\lt\; p^\star, \qquad p^\star = \frac{2\,\min(I,\,1)}{1+I}. \quad (14)
+\text{superpose} \iff p \;\lt\; p^\star, \qquad p^\star = \frac{4I}{2+5I}\ (I\le1), \quad \frac{4}{5+2I}\ (I\ge1). \quad (14)
 ```
 
-These three phases tile the $(I,p)$ plane and meet at $(I,p)=(1,1)$: **not represented** when the extra feature is unimportant and the world is dense ($I\lt1$, $p\gt p^\star$); **dedicated** when it is the *more* important one and dense ($I\gt1$, $p\gt p^\star$); **superposition** whenever it is sparse ($p\lt p^\star$). The transition is **first order** — the optimal configuration switches discontinuously, putting a kink in the optimal loss. The symmetric case $I=1$ gives $p^\star=1$: superposition sets in at *any* nonzero sparsity.
+These three phases tile the $(I,p)$ plane and meet at $(I,p)=(1,\tfrac47)$: **not represented** when the extra feature is unimportant and dense ($I\lt1$, $p\gt p^\star$); **dedicated** when it is the *more* important one and dense ($I\gt1$, $p\gt p^\star$); **superposition** whenever sparse ($p\lt p^\star$). The transition is **first order** (the optimal configuration switches discontinuously). Training the actual $n=2,m=1$ model confirms this map; the boundary it traces is a little above the clean estimate (e.g. at $I=1$ it superposes up to $p\approx0.7$ vs the estimate $\tfrac47\approx0.57$) because the superposed solution shaves a bit more off the collision error with a small bias — the exact boundary is the paper's full optimisation. Note the symmetric case is *not* "superposition for all sparsity": even at $I=1$ there is a genuine dense phase with no superposition.
+
+`python experiments/04_phase_diagram_n2m1.py`
+
+![n=2, m=1 phase diagram](figures/04_phase_diagram_n2m1.png)
+
+Coloured cells are the trained model's phase across the $(I, p)$ plane; the solid curve is the analytic boundary $p^\star(I)$ above, and the dashed line ($I=1$) separates the two dense phases. The agreement is the check that the closed-form analysis matches the model.
 
 ### C. From the boundary to the log-linear count (Exp 2)
 
