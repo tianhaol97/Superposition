@@ -230,29 +230,33 @@ E_k = \sum_{a \lt b} \cos^2\!\Big(\tfrac{2\pi (a-b)}{k}\Big) = \frac{k}{2}\sum_{
 
 For the pentagon $E_5 = \tfrac14 \cdot 5 \cdot 3 = 3.75$ (an antipodal pair, $k=2$, gives $E = 1$ separately).
 
-### B. The phase boundary (minimal model $n=2$, $m=1$)
+### B. The phase diagram (minimal model $n=2$, $m=1$)
 
-This reproduces the paper's own closed-form analysis of the $n=2,m=1$ case (their "toy model of the toy model"), which compares the configurations $[1,0]$, $[0,1]$, and the antipodal $[1,-1]$ and identifies a first-order phase change. One feature can always be stored perfectly in a single dimension; the question is whether a *second* feature is worth adding. Write $W = (w_1, w_2)$ so $h = w_1 x_1 + w_2 x_2$, and compare two strategies.
+This reproduces the paper's closed-form analysis of the $n=2,m=1$ case (their "toy model of the toy model"). The first feature has importance $I_1 = 1$ and the second ("extra") feature has relative importance $I_2 = I$; each is on with probability $p = 1-S$ at value $\sim\mathcal{U}[0,1)$. With $W=(w_1,w_2)$, $h=w_1 x_1 + w_2 x_2$, and bias $b=0$, there are **three** natural ways to use the single dimension (the paper's three configurations):
 
-**Dedicate** ($W = (1, 0)$, $b = 0$): then $\hat{x}_1 = \mathrm{ReLU}(x_1) = x_1$ and $\hat{x}_2 = 0$, so only feature 2's error survives:
+- **not represented**, $W=(1,0)$ — keep feature 1, drop the extra: $\hat{x}_1=x_1$, $\hat{x}_2=0$;
+- **dedicated**, $W=(0,1)$ — give the dimension to the extra, drop feature 1: $\hat{x}_2=x_2$, $\hat{x}_1=0$;
+- **antipodal**, $W=(1,-1)$ — both in superposition: $\hat{x}_i=\mathrm{ReLU}(\pm h)$, exact *unless both fire*.
 
-```math
-L_{\text{ded}} = I\,\mathbb{E}[x_2^2] = I\,p \int_0^1 u^2\,du = \frac{I p}{3}. \quad (12)
-```
-
-**Superpose antipodally** ($W = (1, -1)$, $b = 0$): then $h = x_1 - x_2$, giving $\hat{x}_1 = \mathrm{ReLU}(x_1 - x_2)$ and $\hat{x}_2 = \mathrm{ReLU}(x_2 - x_1)$. If only one feature is on, reconstruction is *exact* (the ReLU clips the rest); error appears **only when both fire** (probability $p^2$), and then each feature's error equals $\min(x_1, x_2)$. With $\mathbb{E}[\min(u,v)^2] = 2\int_0^1\!\int_0^v u^2\,du\,dv = \tfrac16$ over the unit square,
+Using $\mathbb{E}[x^2]=p\!\int_0^1 u^2\,du = p/3$ for a dropped feature, and $\mathbb{E}[\min(u,v)^2]=\tfrac16$ for the both-active collision (probability $p^2$; each feature's error is $\min(x_1,x_2)$, weighted by *its* importance), the losses are
 
 ```math
-L_{\text{sup}} = I\,p^2 \cdot 2\,\mathbb{E}[\min(u,v)^2] = I\,p^2 \cdot 2 \cdot \tfrac16 = \frac{I p^2}{3}. \quad (13)
+L_{\text{not}} = \frac{I\,p}{3}, \qquad L_{\text{ded}} = \frac{p}{3}, \qquad L_{\text{anti}} = \frac{(1+I)\,p^2}{6}. \quad (12)
 ```
 
-**Boundary.** Setting $L_{\text{sup}} = L_{\text{ded}}$ gives $\tfrac{I p^2}{3} = \tfrac{I p}{3}$, i.e. $p = 1$. For every $p  \lt  1$ (any sparsity at all) we have $L_{\text{sup}}  \lt  L_{\text{ded}}$: **superposition wins, and the no-superposition phase survives only at the dense point $p = 1$.** The mechanism is the competing scaling
+**The model takes the minimum.** The two "drop" strategies cost $\propto p$ (a dropped feature's variance), while interference costs only $\propto p^2$ (paid only when two features collide):
 
 ```math
-\underbrace{\text{benefit} \;\propto\; p}_{\text{feature is on}} \qquad \text{vs.} \qquad \underbrace{\text{interference cost} \;\propto\; p^2}_{\text{two features collide}}, \quad (14)
+\underbrace{\text{benefit of representing} \;\propto\; p}_{\text{a feature is on}} \quad\text{vs.}\quad \underbrace{\text{interference cost} \;\propto\; p^2}_{\text{two features collide}}. \quad (13)
 ```
 
-so the cost-to-benefit ratio $\propto p \to 0$ as the world gets sparse.
+So superposition always wins once the world is sparse enough. Comparing $L_{\text{anti}}$ against the cheaper drop-strategy gives the superposition boundary
+
+```math
+\text{superpose} \iff p \;\lt\; p^\star, \qquad p^\star = \frac{2\,\min(I,\,1)}{1+I}. \quad (14)
+```
+
+These three phases tile the $(I,p)$ plane and meet at $(I,p)=(1,1)$: **not represented** when the extra feature is unimportant and the world is dense ($I\lt1$, $p\gt p^\star$); **dedicated** when it is the *more* important one and dense ($I\gt1$, $p\gt p^\star$); **superposition** whenever it is sparse ($p\lt p^\star$). The transition is **first order** — the optimal configuration switches discontinuously, putting a kink in the optimal loss. The symmetric case $I=1$ gives $p^\star=1$: superposition sets in at *any* nonzero sparsity.
 
 ### C. From the boundary to the log-linear count (Exp 2)
 
